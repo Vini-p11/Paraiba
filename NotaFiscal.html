@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leitura de Nota Fiscal | Agente Financeiro</title>
+
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #f3f6fb;
+      color: #182230;
+    }
+
+    main {
+      max-width: 900px;
+      margin: 42px auto;
+      padding: 0 18px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #dbe3ef;
+      border-radius: 16px;
+      padding: 26px;
+      box-shadow: 0 8px 24px #15294b12;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 1.7rem;
+    }
+
+    p {
+      line-height: 1.55;
+      color: #526174;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 22px 0;
+    }
+
+    button, .back {
+      border: 0;
+      border-radius: 9px;
+      padding: 12px 17px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: .95rem;
+    }
+
+    #choose {
+      background: #145bd7;
+      color: white;
+    }
+
+    #send {
+      background: #16805d;
+      color: white;
+    }
+
+    #send:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .back {
+      background: #e8eef7;
+      color: #26364a;
+      display: inline-block;
+    }
+
+    #filename {
+      padding: 12px;
+      background: #f6f8fc;
+      border-radius: 8px;
+      overflow-wrap: anywhere;
+    }
+
+    #status {
+      margin-top: 18px;
+      font-weight: 700;
+    }
+
+    pre {
+      background: #101827;
+      color: #e4ecf7;
+      padding: 18px;
+      border-radius: 10px;
+      overflow: auto;
+      max-height: 520px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .hint {
+      font-size: .9rem;
+    }
+
+    .error {
+      color: #b42318 !important;
+    }
+
+    .success {
+      color: #067647 !important;
+    }
+
+    input[type=file] {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+<main>
+  <section class="card">
+    <h1>Leitura de nota fiscal</h1>
+
+    <p>
+      Selecione um arquivo de nota fiscal para processar.
+      O sistema aceita <strong>PDF</strong> (extração e classificação
+      pelos agentes configurados) e <strong>JSON</strong>
+      (leitura direta dos dados estruturados).
+    </p>
+
+    <input
+      id="arquivo"
+      type="file"
+      accept=".pdf,.json,application/pdf,application/json"
+    >
+
+    <div class="actions">
+      <button id="choose" type="button">Selecionar arquivo</button>
+      <button id="send" type="button" disabled>Enviar e ler arquivo</button>
+      <a class="back" href="/">Voltar ao sistema</a>
+    </div>
+
+    <div id="filename">Nenhum arquivo selecionado.</div>
+
+    <p class="hint">
+      Tamanho máximo: 50 MB. Para PDF, os agentes ExtratorAgent
+      e ClassificarAgent precisam estar configurados.
+    </p>
+
+    <div id="status" role="status" aria-live="polite"></div>
+
+    <h2>Dados lidos</h2>
+
+    <pre id="resultado">O conteúdo da nota fiscal aparecerá aqui após a leitura.</pre>
+  </section>
+</main>
+
+<script>
+  const fileInput = document.getElementById("arquivo");
+  const chooseButton = document.getElementById("choose");
+  const sendButton = document.getElementById("send");
+  const filename = document.getElementById("filename");
+  const statusBox = document.getElementById("status");
+  const resultBox = document.getElementById("resultado");
+
+  let selectedFile = null;
+  let pollTimer = null;
+
+  chooseButton.addEventListener("click", () => {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener("change", () => {
+    selectedFile = fileInput.files && fileInput.files[0]
+      ? fileInput.files[0]
+      : null;
+
+    filename.textContent = selectedFile
+      ? `${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)`
+      : "Nenhum arquivo selecionado.";
+
+    sendButton.disabled = !selectedFile;
+    statusBox.textContent = "";
+    statusBox.className = "";
+
+    resultBox.textContent =
+      "O conteúdo da nota fiscal aparecerá aqui após a leitura.";
+  });
+
+  function showStatus(message, kind = "") {
+    statusBox.textContent = message;
+    statusBox.className = kind;
+  }
+
+  async function readJob(jobId) {
+    try {
+      const response = await fetch(
+        `/api/status/${encodeURIComponent(jobId)}`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Não foi possível consultar o processamento."
+        );
+      }
+
+      showStatus(data.message || data.mensagem || data.status);
+
+      if (data.status === "concluido") {
+        resultBox.textContent = JSON.stringify(
+          data.resultado ?? data.result,
+          null,
+          2
+        );
+
+        showStatus("Leitura concluída com sucesso.", "success");
+        sendButton.disabled = false;
+        return;
+      }
+
+      if (data.status === "erro") {
+        showStatus(
+          data.message || data.mensagem || "Falha ao processar o arquivo.",
+          "error"
+        );
+
+        sendButton.disabled = false;
+        return;
+      }
+
+      pollTimer = setTimeout(() => readJob(jobId), 1200);
+    } catch (error) {
+      showStatus(error.message, "error");
+      sendButton.disabled = false;
+    }
+  }
+
+  sendButton.addEventListener("click", async () => {
+    if (!selectedFile) return;
+
+    if (selectedFile.size > 50 * 1024 * 1024) {
+      showStatus("O arquivo excede o limite de 50 MB.", "error");
+      return;
+    }
+
+    if (pollTimer) clearTimeout(pollTimer);
+
+    sendButton.disabled = true;
+    resultBox.textContent = "";
+    showStatus("Enviando arquivo...");
+
+    try {
+      const formData = new FormData();
+      formData.append("arquivo", selectedFile);
+
+      const response = await fetch("/api/extrair", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Não foi possível ler o arquivo."
+        );
+      }
+
+      if (
+        data.resultado !== undefined ||
+        data.result !== undefined
+      ) {
+        resultBox.textContent = JSON.stringify(
+          data.resultado ?? data.result,
+          null,
+          2
+        );
+
+        showStatus(
+          data.message || data.mensagem || "Leitura concluída.",
+          "success"
+        );
+
+        sendButton.disabled = false;
+      } else if (data.trabalho_id) {
+        showStatus(
+          data.message || data.mensagem || "Processando PDF..."
+        );
+
+        await readJob(data.trabalho_id);
+      } else {
+        resultBox.textContent = JSON.stringify(data, null, 2);
+        showStatus("Arquivo processado.", "success");
+        sendButton.disabled = false;
+      }
+    } catch (error) {
+      showStatus(error.message, "error");
+      sendButton.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
