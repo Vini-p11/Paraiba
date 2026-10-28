@@ -48,19 +48,28 @@ async function registrarNota(){if(!notaAtual)return;try{const notaEditada=JSON.p
 const exibirNotaComRevisao=exibirNota;exibirNota=function(d){exibirNotaComRevisao(d);const nota=JSON.parse(document.getElementById('jsonNota').value);if(nota.requer_revisao===true)msg('analiseMsg',`Confiança baixa (${nota.confianca??'não informada'}). Revise os dados e confirme antes de registrar.`,'err')};
 
 async function carregarVersaoGithub(){
+  let ver='v1.0.0', url='https://github.com/Vini-p11/Paraiba';
   try{
     const r=await fetch('/api/health');
-    if(!r.ok)return;
-    const d=await r.json();
-    const ver=d.versao||'v1.0.0';
-    const url=d.github_url||'https://github.com/Vini-p11/Paraiba';
-    const linkFinal=(ver&&ver!=='v1.0.0'&&!ver.startsWith('v'))?`${url}/commit/${ver}`:url;
-    document.querySelectorAll('.ver-code').forEach(el=>{el.textContent=ver});
-    ['sideGithubLink','topGithubLink','heroGithubLink'].forEach(id=>{
-      const a=document.getElementById(id);
-      if(a)a.href=linkFinal;
-    });
+    if(r.ok){
+      const d=await r.json();
+      if(d.versao)ver=d.versao;
+      if(d.github_url)url=d.github_url;
+    }
   }catch(e){}
+  try{
+    const gh=await fetch('https://api.github.com/repos/Vini-p11/Paraiba/commits/main');
+    if(gh.ok){
+      const gd=await gh.json();
+      if(gd.sha)ver=gd.sha.slice(0,7);
+    }
+  }catch(e){}
+  const linkFinal=(ver&&ver!=='v1.0.0'&&!ver.startsWith('v'))?`${url}/commit/${ver}`:url;
+  document.querySelectorAll('.ver-code').forEach(el=>{el.textContent=ver});
+  ['sideGithubLink','topGithubLink','heroGithubLink'].forEach(id=>{
+    const a=document.getElementById(id);
+    if(a)a.href=linkFinal;
+  });
 }
 carregarVersaoGithub();
 </script></body></html>

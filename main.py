@@ -69,6 +69,18 @@ def obter_codigo_versao() -> str:
             return res.stdout.strip()
     except Exception:
         pass
+    try:
+        import urllib.request
+        req = urllib.request.Request(
+            "https://api.github.com/repos/Vini-p11/Paraiba/commits/main",
+            headers={"User-Agent": "AgenteFinanceiro/1.0"}
+        )
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            dados = json.loads(resp.read().decode("utf-8"))
+            if dados.get("sha"):
+                return str(dados["sha"])[:7]
+    except Exception:
+        pass
     return APP_VERSION
 
 

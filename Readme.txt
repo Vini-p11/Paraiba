@@ -1,4 +1,16 @@
-PROJETO 
+DADOS DE ENTREGA (SUBIR)
+========================
+- Link Hospedagem: https://paraiba.vercel.app (Repositório GitHub conectado: https://github.com/Vini-p11/Paraiba)
+- Login (Admin): AnaJamyle_Miguel_Vinicius
+- Senha (Admin): poiu7654321
+- Login (Professor / Avaliador): professor
+- Senha (Professor / Avaliador): professor123
+- Key (LLM): Configurada em GEMINI_API_KEY no arquivo .env / variáveis de ambiente (Modelo configurado: gemini-3.3-flash)
+- Código Última Atualização no GitHub: Exibido de forma clicável na tela principal do projeto (cabeçalho superior, painel inicial e menu lateral), redirecionando diretamente para o commit/repositório no GitHub (https://github.com/Vini-p11/Paraiba).
+
+------------------------------------------------------------------------
+
+PROJETO
 1. OBJETIVO
 Sistema web desenvolvido em Python com FastAPI
 para processamento de notas fiscais em PDF
@@ -67,17 +79,19 @@ Tela Web
 
 main.py
 extrator.py
-classificar.py
-modelos.py
+Classificar.py
+Modelos.py
 index.html
-login.html
+Login.html
+NotaFiscal.html
 requirements.txt
-README.txt
+Readme.txt
+vercel.json
 .env
 
 6. HOSPEDAGEM
-O projeto possui Procfile preparado para
-serviços de hospedagem como Render.
+O projeto possui vercel.json configurado para
+deploy direto na Vercel integrado ao GitHub (https://github.com/Vini-p11/Paraiba).
 
 7. CATEGORIAS DE DESPESA
 
@@ -155,7 +169,7 @@ IMAP_OWNER_CPF (CPF da conta proprietária dos anexos), IMAP_FOLDER
 (opcional; padrão INBOX) e IMAP_POLL_SECONDS (opcional; padrão 300 segundos).
 Os anexos importados ficam visíveis apenas para essa conta e para a
 administração.
-Use [.env.example](.env.example) como modelo e preencha os valores no arquivo
+Use .env.example como modelo e preencha os valores no arquivo
 .env local. Os avisos de serviço desativado não são exibidos; confira
 /api/health para verificar se cada integração está configurada.
 
